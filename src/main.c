@@ -4,7 +4,7 @@
 
 #include "main.h"
 
-void queries(Column *column, Zonemap_index *zonemaps, Imprints_index *scalar_imps, Imprints_index *simd_imps, Imprints_index **exper_imps);
+void queries(Column *column, Zonemap_index *zonemaps, Imprints_index *scalar_imps, Imprints_index *simd_imps, Imprints_index **exper_imps, FILE *qfile);
 void simd_queries(Column *column, Imprints_index *imps, ValRecord low, ValRecord high, long results);
 void genQueryRange(Column *column, Imprints_index *imps, int selectivity, ValRecord *low, ValRecord *high);
 
@@ -13,6 +13,7 @@ int main(int argc, char **argv)
 {
 	Column *column;
 	FILE *cfile;
+	FILE *qfile;
 	long filesize;
 	size_t rd;
 	int stride[14] = {0,0,0,1,2,0,4,8,0,0,4,8,8,0}; /* sizeof(column type) according to MonetDB */
@@ -23,8 +24,8 @@ int main(int argc, char **argv)
 	Imprints_index *simd_imps;
 	Imprints_index **exper_imps;
 
-	if (argc != 5) {
-		printf("usage: %s type count file column\n", argv[0]);
+	if (argc != 8) {
+		printf("usage: %s type count file column blocksize bins q_file\n", argv[0]);
 		return -1;
 	}
 
@@ -70,6 +71,8 @@ int main(int argc, char **argv)
 	column->typesize = stride[column->coltype];
 
 	cfile = fopen(column->filename, "r");
+
+	qfile = fopen(argv[7], "r");
 	if (cfile == NULL) {
 		printf("failed to open column file %s\n", column->filename);
 		return -1;
@@ -133,19 +136,22 @@ int main(int argc, char **argv)
 	simd_imps = create_imprints(column, 64, 64, 1);
 
 	/* create more versions of simd imprints with different bitvector and block sizes */
-	exper_imps = (Imprints_index **)malloc(sizeof(Imprints_index *) * 9);
-	exper_imps[0] = create_imprints(column, 64, 64, 1);
-	exper_imps[1] = create_imprints(column, 64, 128, 1);
-	exper_imps[2] = create_imprints(column, 64, 256, 1);
-	exper_imps[3] = create_imprints(column, 128, 64, 1);
-	exper_imps[4] = create_imprints(column, 128, 128, 1);
-	exper_imps[5] = create_imprints(column, 128, 256, 1);
-	exper_imps[6] = create_imprints(column, 256, 64, 1);
-	exper_imps[7] = create_imprints(column, 256, 128, 1);
-	exper_imps[8] = create_imprints(column, 256, 256, 1);
+	exper_imps = (Imprints_index **)malloc(sizeof(Imprints_index *) * 1);
+	int id = 0;
+	exper_imps[id ++] = create_imprints(column, atoi(argv[5]), atoi(argv[6]), 1);
+	
+	// exper_imps[0] = create_imprints(column, 64, 64, 1);
+	// exper_imps[1] = create_imprints(column, 64, 128, 1);
+	// exper_imps[2] = create_imprints(column, 64, 256, 1);
+	// exper_imps[3] = create_imprints(column, 128, 64, 1);
+	// exper_imps[4] = create_imprints(column, 128, 128, 1);
+	// exper_imps[5] = create_imprints(column, 128, 256, 1);
+	// exper_imps[6] = create_imprints(column, 256, 64, 1);
+	// exper_imps[7] = create_imprints(column, 256, 128, 1);
+	// exper_imps[8] = create_imprints(column, 256, 256, 1);
 
 	/* run the queries */
-	queries(column, zonemaps, scalar_imps, simd_imps, exper_imps);
+	queries(column, zonemaps, scalar_imps, simd_imps, exper_imps, qfile);
 
 	VERBOSE printf("end of run\n");
 	return 1;

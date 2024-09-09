@@ -1,5 +1,5 @@
 IDIR =include
-CC=clang
+CC=gcc
 CFLAGS=-I$(IDIR) -O3 -g -Wall -march=native
 ODIR=src
 LIBS=-lm

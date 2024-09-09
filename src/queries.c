@@ -150,7 +150,7 @@ imprints_scan(Column *column, Imprints_index *imps, ValRecord low, ValRecord hig
 }
 
 unsigned long
-imprints_simd_scan(Column *column, Imprints_index *imps, ValRecord low, ValRecord high, long *timer)
+imprints_simd_scan(Column *column, Imprints_index *imps, ValRecord low, ValRecord high, long *timer, unsigned int *result_data)
 {
 	unsigned long i, res_cnt = 0;
 	unsigned long first = 0, last = 0;
@@ -190,11 +190,16 @@ imprints_simd_scan(Column *column, Imprints_index *imps, ValRecord low, ValRecor
 		case TYPE_int: SIMD_QUERYBOUNDS(epi32, ival); break;
 		case TYPE_lng: SIMD_QUERYBOUNDS(epi64x, lval); break;
 		case TYPE_oid: SIMD_QUERYBOUNDS(epi64x, ulval); break;
-		case TYPE_flt: SIMD_QUERYBOUNDS(ps, fval); break;
-		case TYPE_dbl: SIMD_QUERYBOUNDS(pd, dval); break;
+		// case TYPE_flt: SIMD_QUERYBOUNDS(ps, fval); break;
+		// case TYPE_dbl: SIMD_QUERYBOUNDS(pd, dval); break;
 		default: break;
 	}
-
+	// printf("%lu %lu\n", first, last);
+	// printf("%lu %lu\n", first, last);
+	// printf("%lu %lu\n", first, last);
+	// printf("%lu %lu\n", first, last);
+	// printf("%lu %lu\n", first, last);
+	// printf("query_bounds finish!!\n");
 
 	for (i = first; i <= last; i++)
 		mask[i/8] = setBit(mask[i/8], i%8);
@@ -219,19 +224,32 @@ imprints_simd_scan(Column *column, Imprints_index *imps, ValRecord low, ValRecor
 						lim = i + values_per_block;									\
 						lim = lim > colcnt ? colcnt: lim;							\
 						if (_mm256_testz_si256(simd_innermask, current_imprint)) {	\
-							res_cnt += (lim-i);										\
-						} else {													\
+							if(values_per_block % 32 != 0) { \
+								result_data[i / 32] |= (1u << (lim & 31)) - (1u << (i & 31)); \
+							} else { \
+								for(; i < lim; i += 32) { \
+									result_data[i / 32] = -1u; \
+								}\
+							}  \
+						} else if (values_per_block >= values_per_simd) {													\
 							for (; i < lim; i+=values_per_simd) {							\
 								__m256i values_v = _mm256_load_si256((__m256i*) (col+i));	\
 								v_idx = _mm256_movemask_epi8(								\
 								_mm256_sub_##SIMDTYPE(										\
 									_mm256_cmpgt_##SIMDTYPE(values_v, __m256i_low),			\
 									_mm256_cmpgt_##SIMDTYPE(values_v, __m256i_high)));		\
-								for (e = 0; e < values_per_simd; e++) {						\
-									res_cnt += ((v_idx & p[e]) != 0);						\
-								}															\
+								for (int e = 0; e < values_per_simd; e++) {						\
+									res_cnt += ((v_idx & p[e]) != 0);							\
+									if(((v_idx & p[e]) != 0)) result_data[(i + e) / 32] |= 1u << ((i + e) & 31); \
+								}																\
 							}																\
-						}															\
+						}	else { \
+							for (; i < lim; i ++) { \
+								if((col[i] >= low.X && col[i] < high.X)) { \
+									result_data[i / 32] |= 1u << (i & 31);  \
+								} \
+							} \
+						}														\
 					}																\
 				}																	\
 			} else { /* repeated mask case */										\
@@ -241,8 +259,14 @@ imprints_simd_scan(Column *column, Imprints_index *imps, ValRecord low, ValRecor
 					lim = i + values_per_block * imps->dct[dcnt].blks;				\
 					lim = lim > colcnt ? colcnt : lim;								\
 					if (_mm256_testz_si256(simd_innermask, current_imprint)) {		\
-						res_cnt += (lim -i);										\
-					} else {														\
+						if(values_per_block % 32 != 0) { \
+								result_data[i / 32] |= (1u << (lim & 31)) - (1u << (i &31));\
+							} else { \
+								for(; i < lim; i += 32) { \
+									result_data[i / 32] = -1u; \
+								}\
+							}  \
+					} else if (values_per_block >= values_per_simd){														\
 						for (; i < lim; i+=values_per_simd) {								\
 							__m256i values_v = _mm256_load_si256((__m256i*) (col+i));		\
 							v_idx = _mm256_movemask_epi8(									\
@@ -251,9 +275,16 @@ imprints_simd_scan(Column *column, Imprints_index *imps, ValRecord low, ValRecor
 								_mm256_cmpgt_##SIMDTYPE(values_v, __m256i_high)));			\
 							for (int e = 0; e < values_per_simd; e++) {						\
 								res_cnt += ((v_idx & p[e]) != 0);							\
+								if(((v_idx & p[e]) != 0)) result_data[(i + e) / 32] |= 1u << ((i + e) & 31); \
 							}																\
 						}																	\
-					}																\
+					} else { \
+							for (; i < lim; i ++) { \
+								if((col[i] >= low.X && col[i] < high.X)) { \
+									result_data[i / 32] |= 1u << (i & 31);  \
+								} \
+							} \	
+					}																	\
 				}																	\
 				bcnt += imps->dct[dcnt].blks;										\
 				icnt++;																\
@@ -261,7 +292,6 @@ imprints_simd_scan(Column *column, Imprints_index *imps, ValRecord low, ValRecor
 		}																			\
 	}
 
-	*timer = usec();
 	switch(column->coltype){
 	case TYPE_bte:
 		simd_impsscan(bval, char,epi8);
@@ -283,7 +313,6 @@ imprints_simd_scan(Column *column, Imprints_index *imps, ValRecord low, ValRecor
 	case TYPE_dbl:
 		break;
 	}
-	*timer = usec() - *timer;
 	return res_cnt;
 }
 
@@ -337,11 +366,11 @@ zonemaps_scan(Column *column, Zonemap_index *zmaps, ValRecord low, ValRecord hig
 }
 
 /* simulate a series of queries */
-void genQueryRange(Column *column, Imprints_index *imps, int selectivity, ValRecord *low, ValRecord *high)
+void genQueryRange(Column *column, Imprints_index *imps, int selectivity, ValRecord *low, ValRecord *high, FILE *qfile)
 {
 #define setqueryrange(X)																\
 	(*low).X = imps->bounds[1].X;					\
-	(*high).X = (*low).X + selectivity * column->max.X/ (100.0/REPETITION);;			\
+	(*high).X = (*low).X + (1.00 * selectivity / REPETITION) * (column->max.X - (*low).X);\
 	if ((*high).X > column->max.X) (*high).X  = column->max.X;							\
 	if ((*low).X > (*high).X) (*low).X = (*high).X;										\
 	
@@ -353,7 +382,8 @@ void genQueryRange(Column *column, Imprints_index *imps, int selectivity, ValRec
 		setqueryrange(sval);
 		break;
 	case TYPE_int:
-		setqueryrange(ival);
+		fscanf(qfile, "%d %d", &(*low).ival, &(*high).ival);
+		// setqueryrange(ival);
 		break;
 	case TYPE_lng:
 		setqueryrange(lval);
@@ -370,7 +400,7 @@ void genQueryRange(Column *column, Imprints_index *imps, int selectivity, ValRec
 	return;
 }
 
-void queries(Column *column, Zonemap_index *zonemaps, Imprints_index *scalar_imps, Imprints_index *simd_imps, Imprints_index **exper_imps)
+void queries(Column *column, Zonemap_index *zonemaps, Imprints_index *scalar_imps, Imprints_index *simd_imps, Imprints_index **exper_imps, FILE *qfile)
 {
 	unsigned long res_cnt;
 	unsigned long tuples[REPETITION];
@@ -384,33 +414,46 @@ void queries(Column *column, Zonemap_index *zonemaps, Imprints_index *scalar_imp
 	}
 
 	for (i = 0; i < REPETITION; i++) {
-		genQueryRange(column, scalar_imps, i, &low, &high);
-
+		genQueryRange(column, scalar_imps, i, &low, &high, qfile);
+		printf("%d %d %d", scalar_imps->bounds[1].ival, column->min.ival, column->max.ival);
+		printf("query (%d %d)", low.ival, high.ival);
 		/* simple scan */
 		tuples[i] = simple_scan(column, low, high, &(basetimer[i]));
+		printf("standard = %d", tuples[i]);
+		// res_cnt = zonemaps_scan(column, zonemaps, low, high, &(zonetimer[i]));
+		// if (tuples[i] != res_cnt) {
+		// 	printf("%s expecting %lu results and got %lu results from zonemaps\n", column->colname, tuples[i], res_cnt);
+		// }
 
-		res_cnt = zonemaps_scan(column, zonemaps, low, high, &(zonetimer[i]));
-		if (tuples[i] != res_cnt) {
-			printf("%s expecting %lu results and got %lu results from zonemaps\n", column->colname, tuples[i], res_cnt);
-		}
+		// res_cnt = imprints_scan(column, scalar_imps, low, high, &(impstimer[i]));
+		// if (tuples[i] != res_cnt) {
+		// 	printf("%s expecting %lu results and got %lu results from scalar imprints\n", column->colname, tuples[i], res_cnt);
+		// }
 
-		res_cnt = imprints_scan(column, scalar_imps, low, high, &(impstimer[i]));
-		if (tuples[i] != res_cnt) {
-			printf("%s expecting %lu results and got %lu results from scalar imprints\n", column->colname, tuples[i], res_cnt);
-		}
+		// res_cnt = imprints_scan(column, simd_imps, low, high, &dummy);
+		// if (tuples[i] != res_cnt) {
+		// 	printf("%s expecting %lu results and got %lu results from simd imprints run on scalar queries (for debuging)\n", column->colname, tuples[i], res_cnt);
+		// }
 
-		res_cnt = imprints_scan(column, simd_imps, low, high, &dummy);
-		if (tuples[i] != res_cnt) {
-			printf("%s expecting %lu results and got %lu results from simd imprints run on scalar queries (for debuging)\n", column->colname, tuples[i], res_cnt);
-		}
+		// res_cnt = imprints_simd_scan(column, simd_imps, low, high, &(simd_impstimer[i]));
+		// if (tuples[i] != res_cnt) {
+		// 	printf("%s expecting %lu results and got %lu results from simd imprints\n", column->colname, tuples[i], res_cnt);
+		// }
 
-		res_cnt = imprints_simd_scan(column, simd_imps, low, high, &(simd_impstimer[i]));
-		if (tuples[i] != res_cnt) {
-			printf("%s expecting %lu results and got %lu results from simd imprints\n", column->colname, tuples[i], res_cnt);
-		}
+		for (int k = 0; k < 1; k++) {
+			
+			unsigned int* result = malloc(sizeof(unsigned int) * ((column->colcount + 31) / 32));
+			for(int i = 0; i < (column->colcount + 31)/ 32; i ++) {
+				result[i] = 0u;
+			}
+			dummy = usec();
+			res_cnt = imprints_simd_scan(column, exper_imps[k], low, high, &dummy, result);
+			dummy = usec() - dummy;
 
-		for (int k = 0; k < 9; k++) {
-			res_cnt = imprints_simd_scan(column, exper_imps[k], low, high, &dummy);
+			res_cnt = 0;
+			for(int i = 0; i < column->colcount; i ++) {
+				res_cnt += (result[i / 32] >> (i & 31)) & 1u;
+			}
 			printf("%s "
 					   "query[%d]=%12ld "
 					   "selectivity=%2.1f%% \t"
@@ -418,31 +461,32 @@ void queries(Column *column, Zonemap_index *zonemaps, Imprints_index *scalar_imp
 					   "blocksize = %d(bytes)\t"
 					   "simd_imprints = %ld"
 					   "(usec)\n",
-					   column->colname,
-					   i, tuples[i],
-					   tuples[i]* 100.0/column->colcount,
+						 column->colname,
+					   i, res_cnt,
+					   res_cnt * 100.0/column->colcount,
 					   exper_imps[k]->bins,
 					   exper_imps[k]->blocksize,
 					   dummy
 					   );
+			free(result);
 		}
 	}
 
-	for (i = 0; i < REPETITION; i++) {
-		VERBOSE printf("%s "
-					   "query[%d]=%12ld "
-					   "selectivity=%2.1f%% \t"
-					   "scan = %ld \t"
-					   "zone = %ld \t"
-					   "imprints = %ld \t"
-					   "simd_imprints = %ld "
-					   "(usec)\n",
-					   column->colname,
-					   i, tuples[i],
-					   tuples[i]* 100.0/column->colcount,
-					   basetimer[i],
-					   zonetimer[i],
-					   impstimer[i],
-					   simd_impstimer[i]);
-	}
+	// for (i = 0; i < REPETITION; i++) {
+	// 	VERBOSE printf("%s "
+	// 				   "query[%d]=%12ld "
+	// 				   "selectivity=%2.1f%% \t"
+	// 				   "scan = %ld \t"
+	// 				   "zone = %ld \t"
+	// 				   "imprints = %ld \t"
+	// 				   "simd_imprints = %ld "
+	// 				   "(usec)\n",
+	// 				   column->colname,
+	// 				   i, tuples[i],
+	// 				   tuples[i]* 100.0/column->colcount,
+	// 				   basetimer[i],
+	// 				   zonetimer[i],
+	// 				   impstimer[i],
+	// 				   simd_impstimer[i]);
+	// }
 }

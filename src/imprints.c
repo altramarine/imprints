@@ -110,7 +110,6 @@ simd_imprints(Column *column, Imprints_index *imps)
 		/* setbit_256(x, 0) will set the first bit, and so on */
 		bitmasks[i] = setbit_256(zero, i);
 	}
-
 	#define MAKE_LIMITS(SIMDTYPE, X)											\
 	for (int _i = 0; _i < imps->bins; _i++)										\
 		limits[_i] = _mm256_set1_##SIMDTYPE(imps->bounds[_i].X);				\
@@ -121,12 +120,12 @@ simd_imprints(Column *column, Imprints_index *imps)
 		case TYPE_int: MAKE_LIMITS(epi32, ival); break;
 		case TYPE_lng: MAKE_LIMITS(epi64x, lval); break;
 		case TYPE_oid: MAKE_LIMITS(epi64x, ulval); break;
-		case TYPE_flt: MAKE_LIMITS(ps, fval); break;
-		case TYPE_dbl: MAKE_LIMITS(pd, dval); break;
+		case TYPE_flt: /* MAKE_LIMITS(ps, fval); */ break;
+		case TYPE_dbl: /* MAKE_LIMITS(pd, dval); */ break;
 		default: return NULL;
 	}
 
-	#define GETBIT_SIMD(SIMDTYPE)															\
+	#define GETBIT_SIMD(SIMDTYPE, N)															\
 		/* perform 2 bin comparisons per simd instruction until all bins are checked */		\
 		for (int bin1 = 0, bin2 = 1; bin1 < imps->bins-2; bin1+=2, bin2+=2) {				\
 			result = _mm256_add_##SIMDTYPE(result,											\
@@ -135,27 +134,132 @@ simd_imprints(Column *column, Imprints_index *imps)
 							_mm256_cmpgt_##SIMDTYPE(values_v, limits[bin2])));				\
 		}																					\
 		result = _mm256_sub_##SIMDTYPE(zero,result);										\
-		for (int i1 = 0, i2=1; i1 < values_per_simd-1; i1+=2, i2+=2) {						\
-			simd_mask = _mm256_or_si256(													\
-				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, i1)]),\
-				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, i2)])	\
-			);																				\
-		}
+		switch(N) { \
+      case 2: simd_mask = _mm256_or_si256(													\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 0)]),\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 1)])	\
+			); break; \
+			case 4: simd_mask = _mm256_or_si256(													\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 0)]),\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 1)])	\
+			), simd_mask = _mm256_or_si256(													\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 2)]),\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 3)])	\
+			); break;\
+			case 8: simd_mask = _mm256_or_si256(													\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 0)]),\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 1)])	\
+			), simd_mask = _mm256_or_si256(													\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 2)]),\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 3)])	\
+			),simd_mask = _mm256_or_si256(													\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 4)]),\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 5)])	\
+			), simd_mask = _mm256_or_si256(													\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 6)]),\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 7)])	\
+			); break; \
+			case 16: simd_mask = _mm256_or_si256(													\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 0)]),\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 1)])	\
+			), simd_mask = _mm256_or_si256(													\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 2)]),\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 3)])	\
+			),simd_mask = _mm256_or_si256(													\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 4)]),\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 5)])	\
+			), simd_mask = _mm256_or_si256(													\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 6)]),\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 7)])	\
+			), simd_mask = _mm256_or_si256(													\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 8)]),\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 9)])	\
+			), simd_mask = _mm256_or_si256(													\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 10)]),\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 11)])	\
+			),simd_mask = _mm256_or_si256(													\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 12)]),\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 13)])	\
+			), simd_mask = _mm256_or_si256(													\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 14)]),\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 15)])	\
+			); break; \
+			case 32: simd_mask = _mm256_or_si256(													\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 0)]),\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 1)])	\
+			), simd_mask = _mm256_or_si256(													\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 2)]),\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 3)])	\
+			),simd_mask = _mm256_or_si256(													\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 4)]),\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 5)])	\
+			), simd_mask = _mm256_or_si256(													\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 6)]),\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 7)])	\
+			), simd_mask = _mm256_or_si256(													\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 8)]),\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 9)])	\
+			), simd_mask = _mm256_or_si256(													\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 10)]),\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 11)])	\
+			),simd_mask = _mm256_or_si256(													\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 12)]),\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 13)])	\
+			), simd_mask = _mm256_or_si256(													\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 14)]),\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 15)])	\
+			), simd_mask = _mm256_or_si256(													\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 16)]),\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 17)])	\
+			), simd_mask = _mm256_or_si256(													\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 18)]),\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 19)])	\
+			),simd_mask = _mm256_or_si256(													\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 20)]),\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 21)])	\
+			), simd_mask = _mm256_or_si256(													\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 22)]),\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 23)])	\
+			), simd_mask = _mm256_or_si256(													\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 24)]),\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 25)])	\
+			), simd_mask = _mm256_or_si256(													\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 26)]),\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 27)])	\
+			),simd_mask = _mm256_or_si256(													\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 28)]),\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 29)])	\
+			), simd_mask = _mm256_or_si256(													\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 30)]),\
+				_mm256_or_si256(simd_mask, bitmasks[_mm256_extract_##SIMDTYPE(result, 31)])	\
+			); break; \
+			default: break; \
+		} 
 
 	#define GETBIT_SIMDD(SIMDTYPE) return NULL;
 	#define GETBIT_SIMDF(SIMDTYPE) return NULL;
 
-	#define SIMD_IMPS(T, X) {																			\
+	#define SIMD_IMPS(T, X, N, valX) {																			\
 		T  *restrict col      = (T *) column->col;														\
 		__m256i simd_mask     = zero;																	\
 		__m256i simd_prevmask = zero;																	\
 		__m256i check;																					\
 		for (i = 0; i < colcnt;) {																		\
 			simd_mask = zero;																			\
+			if(simds_per_block == 0) { \
+				for(int spb = 0; spb < values_per_block && i < colcnt; spb ++) { \
+					int _i;	 \
+					int Z = 0;									\
+					for (_i = 0; _i < imps->bins-1; _i++)		\
+						Z += (col[i] > imps->bounds[_i].valX);		\
+					simd_mask = _mm256_or_si256(simd_mask, bitmasks[Z]);\
+					i += 1;\
+				} \
+			} else \
 			for (int spb = 0; spb < simds_per_block && i < colcnt; spb++) {								\
 				__m256i values_v = _mm256_load_si256((__m256i*) (col+i));								\
 				__m256i result = zero;																	\
-				GETBIT_SIMD(X);																			\
+				GETBIT_SIMD(X, N);																			\
 				i += values_per_simd;																	\
 			}																							\
 			loops++;\
@@ -174,9 +278,53 @@ simd_imprints(Column *column, Imprints_index *imps)
 			} else {																					\
 				unique_imps++;\
 				simd_prevmask = simd_mask;																\
-				for (e = 0, k = imps->imps_cnt*imps->imprintsize; e < imps->imprintsize; e++) {			\
-					imprints[k+e] = _mm256_extract_epi8(simd_mask, e);							\
-				}																						\
+				k = imps->imps_cnt*imps->imprintsize;  \ 
+				switch (imps->imprintsize) { \
+					case 1: \
+						imprints[k+0] = _mm256_extract_epi8(simd_mask, 0);							\
+					break; \
+					case 2: \
+						imprints[k+0] = _mm256_extract_epi8(simd_mask, 0), imprints[k+1] = _mm256_extract_epi8(simd_mask, 1); \
+					break; \
+					case 4: \
+						imprints[k+0] = _mm256_extract_epi8(simd_mask, 0), imprints[k+1] = _mm256_extract_epi8(simd_mask, 1); \
+					  imprints[k+2] = _mm256_extract_epi8(simd_mask, 2), imprints[k+3] = _mm256_extract_epi8(simd_mask, 3); \
+					break; \
+					case 8: \
+						imprints[k+0] = _mm256_extract_epi8(simd_mask, 0), imprints[k+1] = _mm256_extract_epi8(simd_mask, 1); \
+					  imprints[k+2] = _mm256_extract_epi8(simd_mask, 2), imprints[k+3] = _mm256_extract_epi8(simd_mask, 3); \
+						imprints[k+4] = _mm256_extract_epi8(simd_mask, 4), imprints[k+5] = _mm256_extract_epi8(simd_mask, 5); \
+					  imprints[k+6] = _mm256_extract_epi8(simd_mask, 6), imprints[k+7] = _mm256_extract_epi8(simd_mask, 7); \
+					break; \
+					case 16: \
+						imprints[k+0] = _mm256_extract_epi8(simd_mask, 0), imprints[k+1] = _mm256_extract_epi8(simd_mask, 1); \
+					  imprints[k+2] = _mm256_extract_epi8(simd_mask, 2), imprints[k+3] = _mm256_extract_epi8(simd_mask, 3); \
+						imprints[k+4] = _mm256_extract_epi8(simd_mask, 4), imprints[k+5] = _mm256_extract_epi8(simd_mask, 5); \
+					  imprints[k+6] = _mm256_extract_epi8(simd_mask, 6), imprints[k+7] = _mm256_extract_epi8(simd_mask, 7); \
+						imprints[k+8] = _mm256_extract_epi8(simd_mask, 8), imprints[k+9] = _mm256_extract_epi8(simd_mask, 9); \
+					  imprints[k+10] = _mm256_extract_epi8(simd_mask, 10), imprints[k+11] = _mm256_extract_epi8(simd_mask, 11); \
+						imprints[k+12] = _mm256_extract_epi8(simd_mask, 12), imprints[k+13] = _mm256_extract_epi8(simd_mask, 13); \
+					  imprints[k+14] = _mm256_extract_epi8(simd_mask, 14), imprints[k+15] = _mm256_extract_epi8(simd_mask, 15); \
+					break; \
+					case 32: \
+						imprints[k+0] = _mm256_extract_epi8(simd_mask, 0), imprints[k+1] = _mm256_extract_epi8(simd_mask, 1); \
+					  imprints[k+2] = _mm256_extract_epi8(simd_mask, 2), imprints[k+3] = _mm256_extract_epi8(simd_mask, 3); \
+						imprints[k+4] = _mm256_extract_epi8(simd_mask, 4), imprints[k+5] = _mm256_extract_epi8(simd_mask, 5); \
+					  imprints[k+6] = _mm256_extract_epi8(simd_mask, 6), imprints[k+7] = _mm256_extract_epi8(simd_mask, 7); \
+						imprints[k+8] = _mm256_extract_epi8(simd_mask, 8), imprints[k+9] = _mm256_extract_epi8(simd_mask, 9); \
+					  imprints[k+10] = _mm256_extract_epi8(simd_mask, 10), imprints[k+11] = _mm256_extract_epi8(simd_mask, 11); \
+						imprints[k+12] = _mm256_extract_epi8(simd_mask, 12), imprints[k+13] = _mm256_extract_epi8(simd_mask, 13); \
+					  imprints[k+14] = _mm256_extract_epi8(simd_mask, 14), imprints[k+15] = _mm256_extract_epi8(simd_mask, 15); \
+						imprints[k+16+0] = _mm256_extract_epi8(simd_mask, 16+0), imprints[k+16+1] = _mm256_extract_epi8(simd_mask, 16+1); \
+					  imprints[k+16+2] = _mm256_extract_epi8(simd_mask, 16+2), imprints[k+16+3] = _mm256_extract_epi8(simd_mask, 16+3); \
+						imprints[k+16+4] = _mm256_extract_epi8(simd_mask, 16+4), imprints[k+16+5] = _mm256_extract_epi8(simd_mask, 16+5); \
+					  imprints[k+16+6] = _mm256_extract_epi8(simd_mask, 16+6), imprints[k+16+7] = _mm256_extract_epi8(simd_mask, 16+7); \
+						imprints[k+16+8] = _mm256_extract_epi8(simd_mask, 16+8), imprints[k+16+9] = _mm256_extract_epi8(simd_mask, 16+9); \
+					  imprints[k+16+10] = _mm256_extract_epi8(simd_mask,16+ 10), imprints[k+16+11] = _mm256_extract_epi8(simd_mask,16+ 11); \
+						imprints[k+16+12] = _mm256_extract_epi8(simd_mask,16+ 12), imprints[k+16+13] = _mm256_extract_epi8(simd_mask,16+ 13); \
+					  imprints[k+16+14] = _mm256_extract_epi8(simd_mask,16+ 14), imprints[k+16+15] = _mm256_extract_epi8(simd_mask,16+ 15); \
+					break; \
+				} \
 				imps->imps_cnt++;																		\
 				if (imps->dct_cnt > 0 && imps->dct[imps->dct_cnt - 1].repeated == 0						\
 			        && imps->dct[imps->dct_cnt-1].blks < ((1<<MAXOFFSET)-1)) {							\
@@ -192,11 +340,11 @@ simd_imprints(Column *column, Imprints_index *imps)
 
 	timer = usec();
 	switch (column->coltype) {
-		case TYPE_bte: SIMD_IMPS(char, epi8); break;
-		case TYPE_sht: SIMD_IMPS(short, epi16); break;
-		case TYPE_int: SIMD_IMPS(int, epi32); break;
-		case TYPE_lng: SIMD_IMPS(long, epi64); break;
-		case TYPE_oid: SIMD_IMPS(unsigned long, epi64); break;
+		case TYPE_bte: SIMD_IMPS(char, epi8, 32, bval); break;
+		case TYPE_sht: SIMD_IMPS(short, epi16, 16, sval); break;
+		case TYPE_int: SIMD_IMPS(int, epi32, 8, ival); break;
+		case TYPE_lng: SIMD_IMPS(long, epi64, 4, lval); break;
+		case TYPE_oid: SIMD_IMPS(unsigned long, epi64, 4, ulval); break;
 		case TYPE_flt: break;
 		case TYPE_dbl: break;
 		default: break;
@@ -330,6 +478,10 @@ binning(Column *column, ValRecord *bounds, int *bins, int max_bins) {
 	}
 
 	printf("%s new binning with max_bins = %d\n", column->colname, max_bins);
+	// int iii = 0;
+	// for(iii = 0; iii < 10; iii++)printf("%d ", ((int *)column->col)[iii]);
+	// printf("\n");
+	// printf("%d %d %d %d %d %d\b", ((int *)column->col)[0],  ((int *)column->col)[1], ((int *)column->col)[2], ((int *)column->col)[3], ((int *)column->col)[4], ((int *)column->col)[5]);
 
 	bounds[0] = sample[1];
 	if (smp < max_bins-1) {

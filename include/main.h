@@ -24,7 +24,7 @@
 #define SIMD_BITS 256
 #define MAX_IMPS  50000000
 #define SAMPLE_SZ 2048
-#define REPETITION  10   /* how many times to repeat each experiment to get an avg */
+#define REPETITION  10000   /* how many times to repeat each experiment to get an avg */
 #define BITRANGE    1    /* 1 = search by bin. 0 = by sampling the data*/
 
 /* printing options */
@@ -128,7 +128,7 @@ typedef struct {
 Imprints_index* create_imprints(Column *column, int blocksize, int max_bins, int simd);
 Zonemap_index*  create_zonemaps(Column *column, int blocksize);
 void queries(Column *column, Zonemap_index *zonemaps, Imprints_index *scalar_imps,
-             Imprints_index *simd_imps, Imprints_index **exper_imps);
+             Imprints_index *simd_imps, Imprints_index **exper_imps, FILE *qfile);
 
 /* utils */
 void isSorted(Column *column);

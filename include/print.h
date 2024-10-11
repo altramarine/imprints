@@ -1,7 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-
+#ifndef PRINT_H__
+#define PRINT_H__
 #include "main.h"
 
 void printMask(char *mask, int bytes)
@@ -245,3 +246,5 @@ void printBits(size_t const size, void const * const ptr)
     }
     puts("");
 }
+
+#endif

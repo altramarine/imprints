@@ -2,6 +2,7 @@ simd_imprints
 imprints
 *.o
 *.swp
+build
 publications/DaMoN-paper/damon2017-simd-imprints.aux
 publications/DaMoN-paper/damon2017-simd-imprints.bbl
 publications/DaMoN-paper/damon2017-simd-imprints.blg

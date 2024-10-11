@@ -1,7 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-
+#ifndef MAIN_H__
+#define MAIN_H__
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
@@ -78,7 +79,7 @@ typedef union {
 typedef struct {
 	char          filename[1024];
 	char          colname[1024];
-	char          typename[64];
+	char          type_name[64];
 	int           coltype;			/* as given by TYPE_* defines	*/
 	int           typesize;			/* size of type in bytes		*/
 	unsigned long colcount;			/* count of values in column	*/
@@ -151,4 +152,6 @@ void statistics(Column column);
 
 #ifdef __APPLE__
 #define aligned_alloc(align, n) malloc(n)
+#endif
+
 #endif

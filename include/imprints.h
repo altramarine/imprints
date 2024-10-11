@@ -1,8 +1,10 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-
+#ifndef IMPRINTS_H__
+#define IMPRINTS_H__
 #include "main.h"
+#include "utils.h"
 
 void binning(Column *column, ValRecord *bounds, int *bins, int max_bins);
 
@@ -24,8 +26,8 @@ scalar_imprints(Column *column, Imprints_index *imps)
 	} while (0)
 
 #define SCALAR_IMPS(T, _T, X) {																		\
-	T  *restrict col = (T *) column->col;															\
-	_T *restrict imprints = (_T *) imps->imprints;													\
+	T  * col = (T *) column->col;															\
+	_T * imprints = (_T *) imps->imprints;													\
 	_T mask = 0, prevmask = 0;																		\
 	for (i = 0; i < colcnt;) {																		\
 		mask = 0;																					\
@@ -99,11 +101,11 @@ simd_imprints(Column *column, Imprints_index *imps)
 	int           values_per_block    = imps->blocksize/column->typesize;
 	int           values_per_simd     = 32/column->typesize;
 	int           simds_per_block     = values_per_block/values_per_simd;
-	char *restrict imprints           = imps->imprints;
+	char * imprints           = imps->imprints;
 	/* simd stuff */
 	//__m256i       *simd_imprints   = (__m256i *) imps->imprints;
 	__m256i       zero             = _mm256_setzero_si256();
-	__m256i       *restrict limits = aligned_alloc(32, (imps->bins) * sizeof(__m256i));
+	__m256i       * limits = (__m256i       *)aligned_alloc(32, (imps->bins) * sizeof(__m256i));
 	__m256i       bitmasks[256];
 
 	for (i = 0; i < 256; i++) {
@@ -240,7 +242,7 @@ simd_imprints(Column *column, Imprints_index *imps)
 	#define GETBIT_SIMDF(SIMDTYPE) return NULL;
 
 	#define SIMD_IMPS(T, X, N, valX) {																			\
-		T  *restrict col      = (T *) column->col;														\
+		T  * col      = (T *) column->col;														\
 		__m256i simd_mask     = zero;																	\
 		__m256i simd_prevmask = zero;																	\
 		__m256i check;																					\
@@ -517,3 +519,4 @@ binning(Column *column, ValRecord *bounds, int *bins, int max_bins) {
 
 	return;
 }
+#endif

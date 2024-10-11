@@ -1,8 +1,11 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-
+#ifndef QUERIES_H__
+#define QUERIES_H__
 #include "main.h"
+
+#include "utils.h"
 
 unsigned long
 simple_scan(Column *column, ValRecord low, ValRecord high, long *timer)
@@ -11,7 +14,7 @@ simple_scan(Column *column, ValRecord low, ValRecord high, long *timer)
 	unsigned long colcnt = column->colcount;
 
 	#define simplescan(X,T) {					\
-		T  *restrict col = (T *) column->col;	\
+		T * col = (T *) column->col;	\
 		T l = low.X;							\
 		T h = high.X;							\
 		for (i = 0; i < colcnt; i++) {			\
@@ -62,8 +65,8 @@ imprints_scan(Column *column, Imprints_index *imps, ValRecord low, ValRecord hig
 
 
 	#define impsscan(X,T,_T) {							\
-		T  *restrict col = (T *) column->col;			\
-		_T *restrict imprints = (_T *) imps->imprints;	\
+		T  * col = (T *) column->col;			\
+		_T * imprints = (_T *) imps->imprints;	\
 		T l = low.X;									\
 		T h = high.X;									\
 		_T mask = 0, innermask = 0;						\
@@ -161,7 +164,7 @@ imprints_simd_scan(Column *column, Imprints_index *imps, ValRecord low, ValRecor
 	int           v_idx, *p, e;
 	int           values_per_block    = imps->blocksize/column->typesize;
 	int           values_per_simd     = 32/column->typesize;
-	char *restrict imprints = imps->imprints;
+	char * imprints = imps->imprints;
 	/* simd stuff */
 	__m256i __m256i_low, __m256i_high;
 
@@ -210,7 +213,7 @@ imprints_simd_scan(Column *column, Imprints_index *imps, ValRecord low, ValRecor
 	}
 
 	#define simd_impsscan(X,T,SIMDTYPE) {										\
-		T  *restrict col = (T *) column->col;										\
+		T  * col = (T *) column->col;										\
 		__m256i simd_mask = _mm256_load_si256((__m256i*) mask);						\
 		__m256i simd_innermask = _mm256_load_si256((__m256i*) innermask);			\
 		__m256i current_imprint;													\
@@ -441,8 +444,7 @@ void queries(Column *column, Zonemap_index *zonemaps, Imprints_index *scalar_imp
 		// }
 
 		for (int k = 0; k < 1; k++) {
-			
-			unsigned int* result = malloc(sizeof(unsigned int) * ((column->colcount + 31) / 32));
+			unsigned int* result = (unsigned int *)malloc(sizeof(unsigned int) * ((column->colcount + 31) / 32));
 			for(int i = 0; i < (column->colcount + 31)/ 32; i ++) {
 				result[i] = 0u;
 			}
@@ -490,3 +492,5 @@ void queries(Column *column, Zonemap_index *zonemaps, Imprints_index *scalar_imp
 	// 				   simd_impstimer[i]);
 	// }
 }
+
+#endif

@@ -1,7 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-
+#ifndef UTILS_H__
+#define UTILS_H__
 #include "main.h"
 
 /* check if a column is sorted */
@@ -73,3 +74,4 @@ __m256i setbit_256(__m256i x, int k) {
 	return _mm256_or_si256(kbit, x);                             // use _mm256_andnot_si256 to unset the k-th bit
 }
 
+#endif

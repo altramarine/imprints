@@ -1,22 +1,22 @@
-IDIR =include
-CC=gcc
-CFLAGS=-I$(IDIR) -O3 -g -Wall -march=native
-ODIR=src
-LIBS=-lm
+# IDIR =include
+# CC=g++
+# CFLAGS=-I$(IDIR) -O3 -g -Wall -march=native
+# ODIR=src
+# LIBS=-lm
 
-_DEPS = main.h
-DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
+# _DEPS = main.h imprints.h print.h utils.h queries.h zonemaps.h
+# DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
-_OBJ = main.o utils.o queries.o print.o imprints.o zonemaps.o
-OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
+# _OBJ = main.o
+# OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
-$(ODIR)/%.o: %.c $(DEPS)
-	$(CC) -c -o $@ $< $(CFLAGS)
+# $(ODIR)/%.o: %.c $(DEPS)
+# 	$(CC) -c -o $@ $< $(CFLAGS)
 
-imprints: $(OBJ)
-	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
+# imprints: $(OBJ)
+# 	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
 
-.PHONY: clean
+# .PHONY: clean
 
-clean:
-	rm -f $(ODIR)/*.o *~ core $(INCDIR)/*~
+# clean:
+# 	rm -f $(ODIR)/*.o *~ core $(INCDIR)/*~

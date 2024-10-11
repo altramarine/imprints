@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "main.h"
+#include "column_imprints.h"
 
 void queries(Column *column, Zonemap_index *zonemaps, Imprints_index *scalar_imps, Imprints_index *simd_imps, Imprints_index **exper_imps, FILE *qfile);
 void simd_queries(Column *column, Imprints_index *imps, ValRecord low, ValRecord high, long results);
@@ -34,38 +34,38 @@ int main(int argc, char **argv)
 	strcpy(column->colname, argv[4]);
 	strcpy(column->filename, argv[3]);
 	column->colcount = atoi(argv[2]);
-	strcpy(column->typename, argv[1]);
+	strcpy(column->type_name, argv[1]);
 
-	if (strcmp(column->typename, "tinyint") == 0 || strcmp(argv[1], "boolean") == 0) {
+	if (strcmp(column->type_name, "tinyint") == 0 || strcmp(argv[1], "boolean") == 0) {
 		column->coltype  = TYPE_bte;
 		column->min.bval = 127;
 		column->max.bval = -127;
-	} else if (strcmp(column->typename, "char") == 0 || strcmp(argv[1],"smallint")== 0 || strcmp(argv[1], "short")== 0) {
+	} else if (strcmp(column->type_name, "char") == 0 || strcmp(argv[1],"smallint")== 0 || strcmp(argv[1], "short")== 0) {
 		column->coltype  = TYPE_sht;
 		column->min.sval = 32767;
 		column->max.sval = -32767;
-	} else if (strcmp(column->typename, "decimal") == 0 || strcmp(argv[1], "int") == 0 || strcmp(argv[1], "date") == 0) {
+	} else if (strcmp(column->type_name, "decimal") == 0 || strcmp(argv[1], "int") == 0 || strcmp(argv[1], "date") == 0) {
 		column->coltype  = TYPE_int;
 		column->min.ival = INT_MAX;
 		column->max.ival = INT_MIN;
-	} else if (strcmp(column->typename, "long") == 0 || strcmp(argv[1], "bigint") == 0) {
+	} else if (strcmp(column->type_name, "long") == 0 || strcmp(argv[1], "bigint") == 0) {
 		column->coltype  = TYPE_lng;
 		column->min.lval = LONG_MAX;
 		column->max.lval = LONG_MIN;
-	} else if (strcmp(column->typename, "float") == 0 || strcmp(argv[1], "real") == 0) {
+	} else if (strcmp(column->type_name, "float") == 0 || strcmp(argv[1], "real") == 0) {
 		column->coltype= TYPE_flt;
 		column->min.fval = FLT_MAX;
 		column->max.fval = FLT_MIN;
-	} else if (strcmp(column->typename, "double") == 0 ) {
+	} else if (strcmp(column->type_name, "double") == 0 ) {
 		column->coltype  = TYPE_dbl;
 		column->min.dval = DBL_MAX;
 		column->max.dval = -DBL_MAX;
-	} else if (strcmp(column->typename, "oid") == 0) {
+	} else if (strcmp(column->type_name, "oid") == 0) {
 		column->coltype  = TYPE_oid;
 		column->min.ulval = ULONG_MAX;
 		column->max.ulval = 0;
 	} else {
-		printf("type %s not supported\n", column->typename);
+		printf("type %s not supported\n", column->type_name);
 		return -1;
 	}
 	column->typesize = stride[column->coltype];
@@ -118,7 +118,7 @@ int main(int argc, char **argv)
 	             "pages %ld\n",
 	             column->colname, column->filename,
 	             filesize,
-	             column->typename, column->coltype,
+	             column->type_name, column->coltype,
 	             column->typesize,
 	             column->colcount,
 	             PAGESIZE,
@@ -139,7 +139,7 @@ int main(int argc, char **argv)
 	exper_imps = (Imprints_index **)malloc(sizeof(Imprints_index *) * 1);
 	int id = 0;
 	exper_imps[id ++] = create_imprints(column, atoi(argv[5]), atoi(argv[6]), 1);
-	
+	printf("imprints created");
 	// exper_imps[0] = create_imprints(column, 64, 64, 1);
 	// exper_imps[1] = create_imprints(column, 64, 128, 1);
 	// exper_imps[2] = create_imprints(column, 64, 256, 1);

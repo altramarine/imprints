@@ -13,7 +13,7 @@
 
 char filename[1024];
 char column[1024];
-char *col, *typename;
+char *col, *type_name;
 int coltype;
 unsigned long colcount;
 unsigned long pages;
@@ -1229,7 +1229,7 @@ void queries()
 
 		for (i =0; i< REPETITION; i++) {
 				printf("%s %s sorted %d select[%d] cfp %d zones %ld time %ld cfp %ld zone %ld wah %ld tuples %ld %2.1f %%\n",
-					column, typename, sorted, i, cfptop, zonetop, 
+					column, type_name, sorted, i, cfptop, zonetop, 
 					basetimer[i],cfptimer[i],zonetimer[i], wahtimer[i], tuples[i], tuples[i]* 100.0/colcount);
 
 				STATS printf ("bindex %ld bcomparisons %ld zindex %ld zcomparisons %ld findex %ld fcomparisons %ld windex %ld wcomparisons %ld\n", bindex[i], bcomparisons[i], zindex[i], zcomparisons[i], findex[i], fcomparisons[i], windex[i], wcomparisons[i] );
@@ -1884,7 +1884,7 @@ int main(int argc, char **argv)
 	r= strrchr(column,'.');
 	if ( r){
 		*r = ' ' ;
-		typename= r+1;
+		type_name= r+1;
 	}
 	if (count && coltype == TYPE_str ) {
 		/* the dictionary indices are assumed to be ordered on the underlying strings */

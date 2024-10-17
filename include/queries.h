@@ -213,7 +213,6 @@ imprints_simd_scan(Column *column, Imprints_index *imps, ValRecord low, ValRecor
 	}
 
 	#define simd_impsscan(X,T,SIMDTYPE) {										\
-		printf("values_per_block = %d!!!!", values_per_block); \ 
 		T  * col = (T *) column->col;										\
 		__m256i simd_mask = _mm256_load_si256((__m256i*) mask);						\
 		__m256i simd_innermask = _mm256_load_si256((__m256i*) innermask);			\

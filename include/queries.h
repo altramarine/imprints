@@ -213,6 +213,7 @@ imprints_simd_scan(Column *column, Imprints_index *imps, ValRecord low, ValRecor
 	}
 
 	#define simd_impsscan(X,T,SIMDTYPE) {										\
+		printf("values_per_block = %d!!!!", values_per_block); \ 
 		T  * col = (T *) column->col;										\
 		__m256i simd_mask = _mm256_load_si256((__m256i*) mask);						\
 		__m256i simd_innermask = _mm256_load_si256((__m256i*) innermask);			\
@@ -228,7 +229,7 @@ imprints_simd_scan(Column *column, Imprints_index *imps, ValRecord low, ValRecor
 						lim = lim > colcnt ? colcnt: lim;							\
 						if (_mm256_testz_si256(simd_innermask, current_imprint)) {	\
 							if(values_per_block % 32 != 0) { \
-								result_data[i / 32] |= (1u << (lim & 31)) - (1u << (i & 31)); \
+								result_data[i / 32] |= (lim & 31) ? (1u << (lim & 31)) - (1u << (i & 31)) : -(1u << (i & 31)); \
 							} else { \
 								for(; i < lim; i += 32) { \
 									result_data[i / 32] = -1u; \
@@ -248,7 +249,7 @@ imprints_simd_scan(Column *column, Imprints_index *imps, ValRecord low, ValRecor
 							}																\
 						}	else { \
 							for (; i < lim; i ++) { \
-								if((col[i] >= low.X && col[i] < high.X)) { \
+								if((col[i] > low.X && col[i] <= high.X)) { \
 									result_data[i / 32] |= 1u << (i & 31);  \
 								} \
 							} \
@@ -263,7 +264,7 @@ imprints_simd_scan(Column *column, Imprints_index *imps, ValRecord low, ValRecor
 					lim = lim > colcnt ? colcnt : lim;								\
 					if (_mm256_testz_si256(simd_innermask, current_imprint)) {		\
 						if(values_per_block % 32 != 0) { \
-								result_data[i / 32] |= (1u << (lim & 31)) - (1u << (i &31));\
+								result_data[i / 32] |= (lim & 31) ? (1u << (lim & 31)) - (1u << (i & 31)) : -(1u << (i & 31));\
 							} else { \
 								for(; i < lim; i += 32) { \
 									result_data[i / 32] = -1u; \
@@ -283,7 +284,7 @@ imprints_simd_scan(Column *column, Imprints_index *imps, ValRecord low, ValRecor
 						}																	\
 					} else { \
 							for (; i < lim; i ++) { \
-								if((col[i] >= low.X && col[i] < high.X)) { \
+								if((col[i] > low.X && col[i] <= high.X)) { \
 									result_data[i / 32] |= 1u << (i & 31);  \
 								} \
 							} \	

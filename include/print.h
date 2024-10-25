@@ -5,6 +5,8 @@
 #define PRINT_H__
 #include "main.h"
 
+namespace ColumnImprints {
+
 void printMask(char *mask, int bytes)
 {
 	int i, j;
@@ -245,6 +247,8 @@ void printBits(size_t const size, void const * const ptr)
         }
     }
     puts("");
+}
+
 }
 
 #endif

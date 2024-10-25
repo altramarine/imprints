@@ -4,8 +4,9 @@
 #ifndef QUERIES_H__
 #define QUERIES_H__
 #include "main.h"
-
 #include "utils.h"
+
+namespace ColumnImprints {
 
 unsigned long
 simple_scan(Column *column, ValRecord low, ValRecord high, long *timer)
@@ -492,6 +493,8 @@ void queries(Column *column, Zonemap_index *zonemaps, Imprints_index *scalar_imp
 	// 				   impstimer[i],
 	// 				   simd_impstimer[i]);
 	// }
+}
+
 }
 
 #endif

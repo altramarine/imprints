@@ -6,6 +6,7 @@
 #include "main.h"
 #include "utils.h"
 
+namespace ColumnImprints {
 Zonemap_index *
 create_zonemaps(Column *column, int blocksize)
 {
@@ -88,5 +89,5 @@ create_zonemaps(Column *column, int blocksize)
 	               column->colname, timer, ((long)timer*1000)/column->colcount);
 	return zonemaps;
 }
-
+}
 #endif

@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #ifndef MAIN_H__
 #define MAIN_H__
+
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
@@ -20,6 +21,8 @@
 #include <ammintrin.h>
 #include <smmintrin.h>
 #include <immintrin.h>
+
+namespace ColumnImprints {
 
 #define BITS      64
 #define SIMD_BITS 256
@@ -153,5 +156,7 @@ void statistics(Column column);
 #ifdef __APPLE__
 #define aligned_alloc(align, n) malloc(n)
 #endif
+
+}
 
 #endif

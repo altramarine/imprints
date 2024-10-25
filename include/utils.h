@@ -5,6 +5,7 @@
 #define UTILS_H__
 #include "main.h"
 
+namespace ColumnImprints {
 /* check if a column is sorted */
 void isSorted(Column *column)
 {
@@ -74,4 +75,5 @@ __m256i setbit_256(__m256i x, int k) {
 	return _mm256_or_si256(kbit, x);                             // use _mm256_andnot_si256 to unset the k-th bit
 }
 
+}
 #endif

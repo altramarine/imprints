@@ -4,7 +4,8 @@
 
 #include "column_imprints.h"
 
-void queries(Column *column, Zonemap_index *zonemaps, Imprints_index *scalar_imps, Imprints_index *simd_imps, Imprints_index **exper_imps, FILE *qfile);
+using namespace ColumnImprints;
+
 void simd_queries(Column *column, Imprints_index *imps, ValRecord low, ValRecord high, long results);
 void genQueryRange(Column *column, Imprints_index *imps, int selectivity, ValRecord *low, ValRecord *high);
 

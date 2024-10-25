@@ -6,6 +6,8 @@
 #include "main.h"
 #include "utils.h"
 
+namespace ColumnImprints {
+
 void binning(Column *column, ValRecord *bounds, int *bins, int max_bins);
 
 Imprints_index *
@@ -518,5 +520,7 @@ binning(Column *column, ValRecord *bounds, int *bins, int max_bins) {
 	VERBOSE printf("%s binning gives %d unique values from %d and %d bins\n", column->colname, smp, SAMPLE_SZ, *bins);
 
 	return;
+}
+
 }
 #endif

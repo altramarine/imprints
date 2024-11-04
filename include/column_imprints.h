@@ -118,9 +118,7 @@ public:
         }
         uint32_t *result_data = new uint32_t[(column_->colcount + 31) / 32];
         memset(result_data, 0, sizeof(uint32_t) * ((column_->colcount + 31) / 32));
-        auto dummy = usec();
-        imprints_simd_scan(column_, index_, low_, high_, &dummy, result_data);
-        dummy = usec();
+        imprints_simd_scan(column_, index_, low_, high_, nullptr, result_data);
         return result_data;
     }
 

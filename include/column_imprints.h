@@ -6,16 +6,15 @@
 #include "queries.h"
 #include "zonemaps.h"
 #include <vector>
-#include <boost/type_index.hpp>
 
 using namespace ColumnImprints;
 
 template <typename VALUE_TYPE>
 class Imprints {
 public:
-  Imprints(int blocksize = 64, int maxbins = 64) : blocksize_(blocksize), maxbins_(maxbins) {
+  Imprints(int blocksize = 64, int maxbins = 64, stirng type_name = "unsigned long") : blocksize_(blocksize), maxbins_(maxbins) {
     column_ = (Column *) malloc(sizeof(Column));
-    strcpy(column_->type_name, boost::typeindex::type_id<VALUE_TYPE>().pretty_name().c_str());
+    column_->type_name = type_name;
     // std::cout << boost::typeindex::type_id<VALUE_TYPE>().pretty_name() << std::endl;
     // printf("typename is: %s\n", column_->type_name);
     if (strcmp(column_->type_name, "tinyint") == 0 || strcmp(column_->type_name, "boolean") == 0) {

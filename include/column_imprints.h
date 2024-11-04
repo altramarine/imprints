@@ -55,7 +55,7 @@ public:
   }
 
   void bulkload(
-    std::vector<VALUE_TYPE> &values) override {
+    std::vector<VALUE_TYPE> &values) {
     // expects the pairs to be pre-sorted before performing bulk load
     // this->_index.bulk_load(values.begin(), values.end());
     // binning()

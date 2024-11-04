@@ -16,7 +16,9 @@ class Imprints {
 public:
   Imprints(int blocksize = 64, int maxbins = 64, std::string type_name = std::string("unsigned long")) : blocksize_(blocksize), maxbins_(maxbins) {
     column_ = (Column *) malloc(sizeof(Column));
-    strcpy(column_->type_name, type_name.c_str());// column_->type_name = type_name;
+    for(int i = 0; i < type_name.length(); i ++) column_->type_name[i] = type_name[i];
+    column_->type_name[type_name.length()] = '\0';
+    // strcpy(column_->type_name, type_name.c_str());// column_->type_name = type_name;
     // std::cout << boost::typeindex::type_id<VALUE_TYPE>().pretty_name() << std::endl;
     // printf("typename is: %s\n", column_->type_name);
     if (strcmp(column_->type_name, "tinyint") == 0 || strcmp(column_->type_name, "boolean") == 0) {

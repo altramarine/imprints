@@ -33,7 +33,7 @@ namespace ColumnImprints {
 
 /* printing options */
 #define STATS          if (0)
-#define VERBOSE        if (1)
+#define VERBOSE        if (0)
 #define PRINT_HISTO    if (0)
 #define PRINT_IMPRINTS if (0)
 #define PRINT_QUERIES  if (0)

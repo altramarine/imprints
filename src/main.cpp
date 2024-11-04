@@ -140,7 +140,7 @@ int main(int argc, char **argv)
 	exper_imps = (Imprints_index **)malloc(sizeof(Imprints_index *) * 1);
 	int id = 0;
 	exper_imps[id ++] = create_imprints(column, atoi(argv[5]), atoi(argv[6]), 1);
-	printf("imprints created");
+	VERBOSE printf("imprints created");
 	// exper_imps[0] = create_imprints(column, 64, 64, 1);
 	// exper_imps[1] = create_imprints(column, 64, 128, 1);
 	// exper_imps[2] = create_imprints(column, 64, 256, 1);

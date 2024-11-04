@@ -384,7 +384,7 @@ create_imprints(Column *column, int blocksize, int max_bins, int simd)
 		imps = simd_imprints(column, imps);
 	} else {
 		if (max_bins > 64 || imps->bins > 64) {
-			printf("%s bin size larger than 64 for scalar version is not permitted\n", column->colname);
+			VERBOSE printf("%s bin size larger than 64 for scalar version is not permitted\n", column->colname);
 			return NULL;
 		}
 		imps = scalar_imprints(column, imps);
@@ -481,7 +481,7 @@ binning(Column *column, ValRecord *bounds, int *bins, int max_bins) {
 		max.dval = DBL_MAX;
 	}
 
-	printf("%s new binning with max_bins = %d\n", column->colname, max_bins);
+	// printf("%s new binning with max_bins = %d\n", column->colname, max_bins);
 	// int iii = 0;
 	// for(iii = 0; iii < 10; iii++)printf("%d ", ((int *)column->col)[iii]);
 	// printf("\n");

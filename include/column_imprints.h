@@ -61,7 +61,7 @@ public:
     // expects the pairs to be pre-sorted before performing bulk load
     // this->_index.bulk_load(values.begin(), values.end());
     // binning()
-    column_->col = (char *)new VALUE_TYPE[values.size()];
+    column_->col = (char*)aligned_alloc(32, sizeof(VALUE_TYPE) * values.size());
     for(size_t i = 0; i < values.size(); i++) {
         ((VALUE_TYPE *)column_->col)[i] = values[i];
     }

@@ -9,7 +9,7 @@
 #include <string>
 #include <stdexcept>
 
-using namespace ColumnImprints;
+namespace ColumnImprints {
 
 template <typename VALUE_TYPE>
 class Imprints {
@@ -140,4 +140,5 @@ private:
   int blocksize_, maxbins_;
 };
 
+}
 #endif
